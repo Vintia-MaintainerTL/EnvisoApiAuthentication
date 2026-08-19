@@ -6,6 +6,8 @@ namespace EnvisoConsole;
 
 internal class Program
 {
+    // Checked-in demo values from the original sample — confirmed dead against the staging
+    // API (403 Forbidden), kept only so the expected shape of each value is still documented.
     private const string DefaultTenantSecretKey = "mosIgBkcR0qKeZenWmpE/A==";
     private const string DefaultApiKey = "L5MhJYSCp06SpYlI2cjbHg==";
     private const string DefaultPublicRsaKey = @"-----BEGIN PUBLIC KEY-----
@@ -19,30 +21,52 @@ oLGfsgIRLqzPT+6DcWZckmkpZRfKd51O/6QByIFCwQKWYcrqrZDzJCGBiZSuv8rd
     {
         Console.WriteLine("Creating a login request for enviso.");
 
-        Console.WriteLine($"Please fill in your APIKEY: {Environment.NewLine} eg:{Environment.NewLine}{DefaultApiKey}");
-        var apiKey = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(apiKey))
+        string apiKey, rsaPublicKey, tenantSecretKey;
+        if (PromptUseDemoCredentials())
         {
             apiKey = DefaultApiKey;
-        }
-
-        Console.WriteLine($"Please fill in your Public RSA Key: {Environment.NewLine}eg: {Environment.NewLine}{DefaultPublicRsaKey}");
-        var rsaPublicKey = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(rsaPublicKey))
-        {
             rsaPublicKey = DefaultPublicRsaKey;
-        }
-
-        Console.WriteLine($"Please fill in your tenantsecret key: {Environment.NewLine}eg: {Environment.NewLine}{DefaultTenantSecretKey}");
-        var tenantSecretKey = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(tenantSecretKey))
-        {
             tenantSecretKey = DefaultTenantSecretKey;
+        }
+        else
+        {
+            apiKey = PromptRequired("APIKEY");
+            rsaPublicKey = PromptRequired("Public RSA Key");
+            tenantSecretKey = PromptRequired("tenantsecret key");
         }
 
         await ExecuteSimpleCallAsync(apiKey, rsaPublicKey, tenantSecretKey);
 
         Console.ReadLine();
+    }
+
+    private static bool PromptUseDemoCredentials()
+    {
+        Console.WriteLine(
+            "Use the checked-in demo credentials (known dead against staging as of the last " +
+            "check) instead of entering your own? [y/N]");
+        var response = Console.ReadLine();
+        return string.Equals(response?.Trim(), "y", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string PromptRequired(string label)
+    {
+        while (true)
+        {
+            Console.WriteLine($"Please fill in your {label}:");
+            var value = Console.ReadLine();
+            if (value is null)
+            {
+                throw new InvalidOperationException($"No input available for {label} (stdin closed).");
+            }
+
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+
+            Console.WriteLine($"{label} cannot be blank.");
+        }
     }
 
     public static async Task ExecuteSimpleCallAsync(string apiKey, string rsaPublicKey, string tenantSecretKey)
