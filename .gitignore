@@ -30,6 +30,7 @@
 *.lock.json
 bin/
 obj/
+.vs/
 **/project.lock.json
 **/testresults.xml
 **/*.orig
