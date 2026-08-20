@@ -29,12 +29,12 @@ class ApiClient
         $this->publicKey = $publicKey;
     }
 
-    // If no token exists, or the 60min long-lived cache entry doesn't indicate it's still
-    // active, log in again. Enviso's authenticationapi/v1/renew endpoint is documented as
-    // deprecated in favor of just logging in again, so this doesn't attempt a token refresh.
+    // If no token exists, log in and cache it. Enviso's authenticationapi/v1/renew endpoint
+    // is documented as deprecated in favor of just logging in again, so this doesn't attempt
+    // a token refresh - it just trusts the cached token for its full lifetime, same as `.net`.
     public function getAuthToken(): string
     {
-        if (!Cache::has('envisopay.authToken') || !Cache::has('envisopay.authTokenStillActive')) {
+        if (!Cache::has('envisopay.authToken')) {
             $this->createNewToken();
         }
 
@@ -56,7 +56,6 @@ class ApiClient
 
         $response = Http::withHeaders([
             'x-api-key' => $this->apiKey,
-            'x-tenantsecretkey' => $this->tenantSecret,
         ])
             ->post($authEndpoint, [
                 'apikey' => $this->apiKey,
@@ -72,6 +71,5 @@ class ApiClient
 
         $result = $response->json();
         Cache::put("envisopay.authToken", $result["authToken"], 60 * 60 * 24 * 30); // Cached for 30 days
-        Cache::put("envisopay.authTokenStillActive", true, 60 * 60); // Re-login after an hour
     }
 }
