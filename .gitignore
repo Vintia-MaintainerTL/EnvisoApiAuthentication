@@ -1,5 +1,6 @@
 /build
 /*.user
+.env
 
 # User-specific files
 

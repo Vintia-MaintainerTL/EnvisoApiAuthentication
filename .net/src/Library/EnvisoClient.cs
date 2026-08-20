@@ -7,11 +7,17 @@ namespace Library;
 
 public class EnvisoClient : IDisposable
 {
-    public const string DefaultBaseUrl = "https://api.staging-enviso.io/resellingapi/v1/";
+    public const string DefaultBaseUrl = "https://api.staging-enviso.io/";
 
     private const string TenantSecretHeader = "x-tenantsecretkey";
     private const string ApiKeyHeader = "x-api-key";
     private const string AuthenticationScheme = "Bearer";
+
+    // Enviso's JSON responses use camelCase field names (e.g. "authToken"), but the DTOs
+    // here use PascalCase properties for idiomatic C# — case-insensitive matching is needed
+    // or every property silently deserializes to null instead of throwing.
+    private static readonly JsonSerializerOptions ResponseJsonOptions =
+        new() { PropertyNameCaseInsensitive = true };
 
     private readonly LoginGenerator _loginGenerator = new();
     private readonly HttpClient _httpClient;
@@ -22,8 +28,8 @@ public class EnvisoClient : IDisposable
     public string RsaPublicKey { get; }
     public string TenantSecretKey { get; }
     public Uri BaseUri { get; }
-    public Uri LoginUri => new(BaseUri, "apis/login");
-    public Uri VenuesUri => new(BaseUri, "venues");
+    public Uri LoginUri => new(BaseUri, "authenticationapi/v1/login");
+    public string? AuthToken => _authToken;
 
     /// <param name="apiKey">the apikey to use for further requests</param>
     /// <param name="rsaPublicKey">the PEM-encoded RSA public key Enviso issued for the tenant, used to sign the login request</param>
@@ -70,9 +76,9 @@ public class EnvisoClient : IDisposable
 
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
-            // There is no documented token-refresh endpoint in the reference material this
-            // client was ported from (LoginResponseDTO.RefreshKey is captured but unused) —
-            // so on expiry this just re-runs the full login rather than guessing at one.
+            // Enviso's authenticationapi/v1/renew endpoint is documented as deprecated in
+            // favor of just logging in again (LoginResponseDTO.RefreshToken is captured but
+            // unused), so this re-runs the full login on expiry rather than refreshing.
             response.Dispose();
             _authToken = await LoginAsync(cancellationToken);
             response = await SendAuthenticatedGetAsync(uri, cancellationToken);
@@ -87,10 +93,14 @@ public class EnvisoClient : IDisposable
     private async Task<string> LoginAsync(CancellationToken cancellationToken)
     {
         var loginRequest = _loginGenerator.GenerateLogin(ApiKey, RsaPublicKey);
-        var content = new StringContent(
-            JsonSerializer.Serialize(loginRequest), Encoding.UTF8, "application/json");
+        using var request = new HttpRequestMessage(HttpMethod.Post, LoginUri)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(loginRequest), Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Add(ApiKeyHeader, ApiKey);
 
-        using var response = await _httpClient.PostAsync(LoginUri, content, cancellationToken);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
         var loginResponse = await ReadResponseAndDeserializeAsync<LoginResponseDTO>(response, cancellationToken);
         return loginResponse!.AuthToken;
     }
@@ -120,7 +130,7 @@ public class EnvisoClient : IDisposable
 
         return responseContent is null
             ? default
-            : JsonSerializer.Deserialize<TResponse>(responseContent);
+            : JsonSerializer.Deserialize<TResponse>(responseContent, ResponseJsonOptions);
     }
 
     public void Dispose()

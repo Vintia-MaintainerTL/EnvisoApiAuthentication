@@ -1,3 +1,3 @@
 namespace Library;
 
-public record LoginResponseDTO(string AuthToken, string RefreshKey);
+public record LoginResponseDTO(string AuthToken, string RefreshToken);

@@ -19,7 +19,7 @@ public class LoginGenerator
         $"{apiKey}_{currentTimeStamp}";
 
     private static string CreateSha256Hash(string data) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(data)));
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(data))).ToLowerInvariant();
 
     /// <summary>
     /// Encrypts <paramref name="data"/> with the public part of Enviso's asymmetric keypair

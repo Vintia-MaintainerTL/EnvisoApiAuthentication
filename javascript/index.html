@@ -62,9 +62,6 @@ n21kDr842Q+WDtLE4QIDAQAB
         <br/>
         <textarea id="output" rows=4 cols=70></textarea>
     </fieldset>
-    <p>
-	More info on <a href="https://confluence.syxautomations.com/display/NGPLATFORM/Api-Key+Generation+Technical" target="_blank">Confluence</a>
-    </p>
 
     <script type="text/javascript">
 
@@ -111,6 +108,11 @@ n21kDr842Q+WDtLE4QIDAQAB
             var uncrypted = signature;
             showSHA256(uncrypted);
             var signed = sign(signature, publicKey());
+            if (signed === false) {
+                showResult('ERROR: encryption failed - check that API Secret is a valid PEM public key');
+                $("#output").val('');
+                return;
+            }
             showResult(signed);
 
             output = {

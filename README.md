@@ -17,13 +17,3 @@ login endpoint decrypts it with the matching private key to verify the hash; the
 never signs anything with a key of its own. Only the `.net` sample's naming/docs have been
 updated to make this explicit so far — javascript/php/python/Postman still use the original
 terminology and haven't been audited for drift from this description.
-
-## .net sample
-
-Modernized to target `net8.0`: BouncyCastle and Newtonsoft.Json are no longer needed
-(`System.Security.Cryptography` and `System.Text.Json` cover everything), the `HttpClient`
-is reused/injectable instead of `new`'d per call, all async calls take a
-`CancellationToken`, and the base URL is a constructor parameter instead of a hardcoded
-constant. See `.net/src/Library/EnvisoClient.cs` for the current shape, including a note on
-why token refresh re-runs the full login rather than calling an undocumented refresh
-endpoint.
