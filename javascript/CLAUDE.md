@@ -7,10 +7,8 @@ displays the signed login payload for copy/paste testing. Makes no HTTP call its
 - `index.html` — UI + all logic, inline `<script>` at the bottom.
 - `sha256.js` — vendored jsSHA library (provides `jsSHA`).
 - `jsencrypt.js` — vendored JSEncrypt library (provides `JSEncrypt`), does the RSA step.
-  Bumped from v2.3.0 to v3.5.4 (2026-08-20; current npm latest) — same UMD global-`JSEncrypt`
-  shape and `setPublicKey`/`encrypt` API, so `index.html` needed no changes. Verified via a
-  throwaway RSA keypair: `JSEncrypt.encrypt()`'s output decrypts correctly with OpenSSL
-  (`rsa_padding_mode:pkcs1`) back to the original plaintext.
+  Vendored version is v2.3.0 (2016) — current npm latest is 3.5.4, same API shape
+  (`setPublicKey`/`encrypt`), so a bump would be a drop-in if this is ever revisited.
 
 ## Flow (`hashAndEncrypt()`, index.html:106)
 1. `hash([apiKey, timestamp])` — jsSHA joins with `_` and SHA-256-hashes, hex output.
@@ -37,7 +35,8 @@ repo root.
 - `jsencrypt.js`'s `JSEncrypt.encrypt()` still returns `false` on failure (vendored lib,
   left as-is), but `hashAndEncrypt()` in index.html checks for `signed === false` and shows
   a clear error message instead of writing the literal string `"false"` into the output box.
-- Confirmed padding parity: PKCS#1 v1.5 in jsencrypt.js, matching `.net`/`php`/`python`.
+- Confirmed padding parity: `pkcs1pad2` in jsencrypt.js is genuine PKCS#1 v1.5, matching
+  `.net`/`php`/`python`.
 - Loads jQuery over plain `http://ajax.googleapis.com/...` (index.html:8) — dead/mixed-content
   risk, and jQuery is only used for form wiring, not the crypto.
 - Function is misleadingly named `sign` (index.html:90) even though it's RSA *encryption*
